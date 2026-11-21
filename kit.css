@@ -1,0 +1,178 @@
+/* ═══════════════════════════════════════════════════════════════
+   SCROLL KIT — каркас полноэкранных скролл-сцен.
+   Нейтральные цвета: поменяйте токены и всё перекрасится.
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#0e0e0e; --bg-2:#161616; --line:#2a2a2a;
+  --text:#f2f2f2; --muted:#8a8a8a;
+  --accent:#d8d8d8;            /* ← один акцентный цвет проекта */
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --display:var(--font);
+  --pad:clamp(20px,4vw,56px);
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+
+/* ─── база ─── */
+*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:400 17px/1.6 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+@supports (overflow:clip){body{overflow-x:clip}}
+img,video,canvas{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0}
+:focus:not(:focus-visible){outline:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+h1,h2,h3{margin:0;font-family:var(--display);letter-spacing:-.04em;line-height:.9}
+.wrap{width:min(1320px,100% - var(--pad)*2);margin-inline:auto}
+.label{font:600 12px/1 var(--font);letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
+.huge{font-weight:900;font-size:clamp(52px,11vw,200px);text-transform:uppercase}
+.lead{max-width:44ch;color:var(--muted);font-size:clamp(16px,1.3vw,19px)}
+
+/* ─── плейсхолдер вместо картинки/видео/3D ─── */
+.ph{position:relative;overflow:hidden;background:linear-gradient(135deg,#2a2a2a,#151515 60%,#222);}
+.ph:nth-of-type(2n){background:linear-gradient(200deg,#303030,#141414 55%,#1e1e1e)}
+.ph:nth-of-type(3n){background:linear-gradient(20deg,#262626,#111 50%,#2c2c2c)}
+.ph::after{content:attr(data-label);position:absolute;left:16px;bottom:14px;font:600 11px/1 ui-monospace,monospace;letter-spacing:.12em;color:#666;text-transform:uppercase}
+.ph img,.ph video{width:100%;height:100%;object-fit:cover}
+
+/* ═══════════════ ДВИЖОК СЦЕН ═══════════════
+   <section data-scene="…" data-length="300">  ← длина скролла в vh
+     <div class="pin"> … </div>                 ← залипает на весь экран
+   JS ставит на секцию:  --p  (0…1 прогресс всей сцены)  */
+[data-scene]{--p:0;--e:0;position:relative;height:calc(var(--len,300) * 1vh)}
+.pin{position:sticky;top:0;height:100vh;height:100lvh;overflow:hidden}
+/* «видимая» высота на телефоне — для текста у нижнего края */
+.safe-bottom{bottom:calc(var(--pad) + 100lvh - 100svh)!important}
+
+/* ─── разбивка текста (kit.js → split) ─── */
+[data-split]{display:inline-block;overflow:hidden;padding-bottom:.08em;vertical-align:top}
+.ch{display:inline-block;transform:translateY(110%) rotate(6deg);transition:transform 1s var(--ease);transition-delay:calc(var(--i) * 20ms)}
+.wd{display:inline-block;white-space:nowrap}
+.in .ch,[data-split].in .ch{transform:none}
+
+/* ─── появление блоков при входе в экран ─── */
+[data-reveal]{opacity:0;transform:translateY(40px);transition:opacity 1s var(--ease),transform 1.2s var(--ease)}
+[data-reveal].in{opacity:1;transform:none}
+
+/* ═══════════════ 1. HERO — фон на весь экран + уход при скролле ═══════════════ */
+.hero-bg{position:absolute;inset:0;width:100%;height:100%}
+.hero-copy{position:absolute;left:var(--pad);right:var(--pad);bottom:var(--pad);
+  opacity:calc(1 - var(--p) * 2.2);
+  transform:translateY(calc(var(--p) * -160px)) scale(calc(1 - var(--p) * .1));
+  filter:blur(calc(var(--p) * 14px))}
+.hero-copy .lead{margin-top:24px}
+.hero-fade{position:absolute;inset:auto 0 0;height:30%;background:linear-gradient(to top,var(--bg),transparent);pointer-events:none}
+
+/* ═══════════════ 2. STEPS — главы со сменой фона ═══════════════ */
+.steps-media{position:absolute;inset:0}
+.steps-media>*{position:absolute;inset:0;opacity:0;transform:scale(1.15);transition:opacity 1s,transform 1.6s var(--ease)}
+.steps-media>.on{opacity:1;transform:scale(1)}
+.steps-media::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.75),transparent 70%)}
+.step{position:absolute;left:var(--pad);top:50%;width:min(640px,calc(100vw - var(--pad) * 2));transform:translateY(-50%);pointer-events:none}
+.step h2{font-size:clamp(40px,7vw,120px);font-weight:900;text-transform:uppercase;margin:16px 0 20px}
+.step p{margin:0;opacity:0;transform:translateY(16px);transition:.8s var(--ease) .2s}
+.step.on p{opacity:1;transform:none}
+.step:not(.on){visibility:hidden;transition:visibility 0s .6s}
+.steps-hud{position:absolute;left:var(--pad);right:var(--pad);bottom:calc(var(--pad) + 100lvh - 100svh);display:flex;gap:16px;align-items:center}
+.steps-hud .bar{flex:1;max-width:260px;height:2px;background:var(--line)}
+.steps-hud .bar i{display:block;height:100%;background:var(--accent);transform-origin:left;transform:scaleX(var(--p))}
+
+/* ═══════════════ 3. ZOOM — карточка раскрывается на весь экран ═══════════════ */
+.zoom-media{position:absolute;inset:0;
+  clip-path:inset(calc((1 - var(--e,0)) * 26%) calc((1 - var(--e,0)) * 32%) round calc((1 - var(--e,0)) * 28px))}
+.zoom-media>*{position:absolute;inset:0;transform:scale(calc(1.4 - var(--e,0) * .4))}
+.zoom-title{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none;
+  transform:scale(calc(1 + var(--e,0) * .6));opacity:calc(1 - var(--e,0) * 1.6)}
+.zoom-after{position:absolute;left:var(--pad);right:var(--pad);bottom:calc(var(--pad) + 100lvh - 100svh);opacity:calc(var(--e,0) * 3 - 2);transform:translateY(calc((1 - var(--e,0)) * 60px))}
+
+/* ═══════════════ 4. WORDS — заливка текста по словам ═══════════════ */
+.words-pin{display:flex;flex-direction:column;justify-content:center;gap:32px;padding:0 var(--pad)}
+.words-text{margin:0;max-width:22ch;font:800 clamp(30px,5vw,84px)/1.05 var(--display);letter-spacing:-.04em}
+.words-text .w{color:rgba(255,255,255,.12);transition:color .3s}
+.words-text .w.on{color:var(--text)}
+
+/* ═══════════════ 5. HORIZONTAL — вертикальный скролл → горизонталь ═══════════════ */
+.h-pin{display:flex;flex-direction:column;justify-content:center;gap:40px}
+.h-head{padding:0 var(--pad);display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+.h-track{display:flex;gap:24px;padding:0 var(--pad);width:max-content;will-change:transform}
+.h-card{flex:none;width:min(60vw,860px);aspect-ratio:16/10;border-radius:20px;
+  transform:perspective(1400px) rotateY(var(--ry,0deg)) scale(var(--sc,1))}
+.h-bar{margin:0 var(--pad);height:2px;background:var(--line)}
+.h-bar i{display:block;height:100%;background:var(--accent);transform-origin:left;transform:scaleX(var(--p))}
+
+/* ═══════════════ 6. TEXT-ZOOM — пролёт сквозь огромное слово ═══════════════ */
+.tz-pin{display:grid;place-items:center;background:var(--bg)}
+.tz-under{position:absolute;inset:0}
+.tz-mask{position:absolute;inset:0;display:grid;place-items:center;background:var(--bg);
+  mix-blend-mode:multiply;              /* текст «вырезает» окно в чёрном слое */
+  opacity:calc(1 - (var(--e,0) - .85) * 7)}
+.tz-word{font:900 clamp(80px,22vw,400px)/1 var(--display);letter-spacing:-.06em;text-transform:uppercase;color:#fff;
+  transform:scale(var(--tzs,1));transform-origin:var(--tz-origin,50% 50%);will-change:transform}
+.tz-after{position:absolute;inset:auto var(--pad) calc(var(--pad) + 100lvh - 100svh);opacity:calc((var(--e,0) - .9) * 10)}
+
+/* ═══════════════ 7. CIRCLE — следующий экран раскрывается кругом ═══════════════ */
+.circle-base{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.circle-layer{position:absolute;inset:0;display:grid;place-items:center;text-align:center;background:var(--accent);color:var(--bg);
+  clip-path:circle(calc(var(--e,0) * 75%) at var(--cx,50%) var(--cy,50%))}
+.circle-layer .huge{transform:scale(calc(1.3 - var(--e,0) * .3))}
+
+/* ═══════════════ 8. PARALLAX — слои на разной глубине ═══════════════ */
+.px-pin{display:grid;place-items:center}
+.px-layer{position:absolute;border-radius:18px;
+  transform:translate3d(0,calc((.5 - var(--p)) * var(--depth,1) * 60vh),0) rotate(calc((.5 - var(--p)) * var(--depth,1) * 8deg))}
+.px-title{position:relative;z-index:2;text-align:center;transform:scale(calc(.8 + var(--p) * .4))}
+
+/* ═══════════════ 9. SPLIT — липкий текст слева, медиа справа ═══════════════ */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:var(--pad);padding:15vh var(--pad)}
+.split-sticky{position:sticky;top:0;height:100vh;height:100lvh;display:flex;flex-direction:column;justify-content:center}
+.split-item{display:none}.split-item.on{display:block;animation:splitIn .8s var(--ease)}
+@keyframes splitIn{from{opacity:0;transform:translateY(30px)}}
+.split-item h3{font-size:clamp(36px,5vw,80px);font-weight:900;text-transform:uppercase;margin:16px 0 18px}
+.split-media{display:grid;gap:15vh;padding:30vh 0}
+.split-media>.ph{aspect-ratio:4/5;border-radius:20px;transform:scale(.88);opacity:.4;transition:transform 1s var(--ease),opacity 1s}
+.split-media>.ph.on{transform:none;opacity:1}
+
+/* ═══════════════ 10. STACK — карточки стопкой ═══════════════ */
+.stack-sec{padding:15vh 0}
+.stack-card{position:sticky;top:calc(12vh + var(--k,0) * 24px);height:70vh;margin-bottom:8vh;border-radius:26px;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;
+  background:var(--bg-2);box-shadow:inset 0 0 0 1px var(--line);transform-origin:top center;
+  transform:scale(calc(1 - var(--cover,0) * .08));filter:brightness(calc(1 - var(--cover,0) * .5))}
+.stack-card .txt{padding:clamp(24px,4vw,56px);display:flex;flex-direction:column;justify-content:flex-end}
+.stack-card h3{font-size:clamp(32px,4.5vw,72px);font-weight:900;text-transform:uppercase;margin-bottom:16px}
+
+/* ═══════════════ 11. MARQUEE — бегущая строка от скорости скролла ═══════════════ */
+.marquee{overflow:hidden;padding:6vh 0}
+.marquee-track{display:flex;width:max-content;will-change:transform}
+.marquee-track span{font:900 clamp(56px,9vw,150px)/1.05 var(--display);text-transform:uppercase;letter-spacing:-.05em;padding-right:.6em}
+.marquee.outline span{color:transparent;-webkit-text-stroke:1px #444}
+
+/* ═══════════════ 12. FOOTER — раскрывается из-под страницы ═══════════════ */
+main{position:relative;z-index:1;background:var(--bg)}
+.footer{position:relative;z-index:0;background:#000;padding:80px var(--pad) 30px}
+.footer.reveal{position:fixed;left:0;right:0;bottom:0}
+.footer-giant{font:900 clamp(80px,20vw,360px)/.8 var(--display);letter-spacing:-.07em;text-align:center;margin:40px 0;transform:translateY(calc((1 - var(--fp,1)) * 40%))}
+
+/* ─── курсор ─── */
+.cursor{position:fixed;left:0;top:0;width:40px;height:40px;margin:-20px 0 0 -20px;border:1px solid rgba(255,255,255,.4);border-radius:50%;pointer-events:none;z-index:100;
+  display:grid;place-items:center;transition:width .4s var(--ease),height .4s var(--ease),margin .4s var(--ease),background .3s}
+.cursor span{font:700 10px/1 var(--font);letter-spacing:.15em;text-transform:uppercase;color:var(--bg);opacity:0}
+.cursor.big{width:96px;height:96px;margin:-48px 0 0 -48px;background:var(--accent);border-color:var(--accent)}
+.cursor.big span{opacity:1}
+@media (hover:none){.cursor{display:none}}
+
+/* ─── прогресс страницы ─── */
+.progress{position:fixed;left:0;right:0;top:0;height:2px;z-index:90;background:var(--accent);transform-origin:left;transform:scaleX(var(--sp,0))}
+
+/* ─── адаптив ─── */
+@media (max-width:860px){
+  .split{grid-template-columns:1fr}
+  .split-sticky{height:auto;position:sticky;top:0;padding:20px 0;background:var(--bg);z-index:2}
+  .split-media{padding:0}
+  .stack-card{grid-template-columns:1fr;height:72vh}.stack-card .ph{order:-1}
+  .h-card{width:80vw;aspect-ratio:4/5}
+  .zoom-media{clip-path:inset(calc((1 - var(--e,0)) * 22%) calc((1 - var(--e,0)) * 10%) round calc((1 - var(--e,0)) * 20px))}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
+  .ch{transform:none}[data-reveal]{opacity:1;transform:none}
+}
